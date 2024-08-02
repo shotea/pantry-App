@@ -1,190 +1,333 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { firestore } from '@/firebase';
-import { Box, Modal, Typography, Button, Stack, TextField } from '@mui/material';
+import { Box, Modal, Typography, Button, Stack, TextField, Switch } from '@mui/material';
 import { collection, query, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
 export default function Home() {
-  // inventory management helper functions
   const [inventory, setInventory] = useState([]);
-  // add and remove things, default value false
   const [open, setOpen] = useState(false);
-  // to store the name of the item we type out
   const [itemName, setItemName] = useState('');
-  
-  // fetch the inventory from Firebase functions
-  // 1 updating from Firebase, make it async, it won’t block out entire code while fetching
+  const [searchQuery, setSearchQuery] = useState('');
+  const [alert, setAlert] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Function to fetch inventory from Firestore
   const updateInventory = async () => {
-    // equal to a function, snapshot in the collection by doing a query. so query collection and in it we put firestore and inventory
-    const snapshot = query(collection(firestore, 'inventory'))
-    const docs = await getDocs(snapshot)
-    const inventoryList = []
-    // for every element in snapshot, we want to add it to our inventory list, push an obj where name is the id of doc
+    const snapshot = query(collection(firestore, 'inventory'));
+    const docs = await getDocs(snapshot);
+    const inventoryList = [];
     docs.forEach((doc) => {
       inventoryList.push({
         name: doc.id,
         ...doc.data(),
       });
     });
-    // set inventory to inventory list
     setInventory(inventoryList);
-    //console.log(inventoryList);
   };
 
-  // Add or Remove Items:
-
-  // add items
+  // Function to add a new item to inventory
   const addItem = async (item) => {
-    const docRef = doc(collection(firestore, 'inventory'), item); // this gets a direct item reference
-    // now we get a snapshot, gets doc by ref if it exists
+    if (!item.trim()) {
+      setAlert({ type: 'error', message: 'Please enter an item name.' });
+      return;
+    }
+    const docRef = doc(collection(firestore, 'inventory'), item);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const { quantity } = docSnap.data();
       await setDoc(docRef, { quantity: quantity + 1 });
-    } else { // if it exists we add 1, if it doesn't exist we set quantity to 1 and update inventory
+    } else {
       await setDoc(docRef, { quantity: 1 });
     }
 
     await updateInventory();
+    setItemName('');
+    handleClose();
+    setAlert({ type: 'success', message: `${item} added to inventory.` });
   };
 
-  // remove items
+  // Function to remove an item from inventory
   const removeItem = async (item) => {
-    const docRef = doc(collection(firestore, 'inventory'), item); // this gets a direct item reference
-    // now we get a snapshot, gets doc by ref if it exists
+    const docRef = doc(collection(firestore, 'inventory'), item);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const { quantity } = docSnap.data();
-      if (quantity === 1) { // if quantity == 1 we want to delete it
+      if (quantity === 1) {
         await deleteDoc(docRef);
-      } else { // if not == 1 we set docRef to be quantity where quantity is == to quantity - 1
+      } else {
         await setDoc(docRef, { quantity: quantity - 1 });
       }
     }
 
     await updateInventory();
+    setAlert({ type: 'success', message: `${item} removed from inventory.` });
   };
 
-  // useEffect runs whenever code in here is in this case updateInventory, whenever in the array[] dependency changes, here’s nothing not so it runs once at beginning of page loads
+  // Function to increase the quantity of an item
+  const increaseQuantity = async (item) => {
+    const docRef = doc(collection(firestore, 'inventory'), item);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const { quantity } = docSnap.data();
+      await setDoc(docRef, { quantity: quantity + 1 });
+    }
+    
+    await updateInventory();
+  };
+
+  // Function to decrease the quantity of an item
+  const decreaseQuantity = async (item) => {
+    const docRef = doc(collection(firestore, 'inventory'), item);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const { quantity } = docSnap.data();
+      if (quantity === 1) {
+        await deleteDoc(docRef);
+      } else {
+        await setDoc(docRef, { quantity: quantity - 1 });
+      }
+    }
+    
+    await updateInventory();
+  };
+
+  // Fetch inventory when the component mounts
   useEffect(() => {
     updateInventory();
-  }, []); // The empty dependency array ensures this runs only once
+  }, []);
 
-  // Open and close modal functions
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
+  // Handle key press for search functionality
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent default form submission
+      // Perform search or filtering
+    }
+  };
+
+  // Filter inventory based on search query
+  const filteredInventory = inventory.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Toggle between dark mode and light mode
+  const toggleDarkMode = () => setDarkMode(!darkMode);
+
   return (
-    // justifyContent="center" centers it horizontally, alignItems="center" centers it vertically
     <Box 
-      width="100vw" 
-      height="100vh" 
-      display="flex" 
-      flexDirection="column"
-      justifyContent="center"  
-      alignItems="center"
-      gap={2}
+      sx={{
+        minHeight: '100vh',
+        color: darkMode ? '#e0e0e0' : '#333333', // Text color: light for dark mode, dark for light mode
+        position: 'relative',
+        py: 6,
+        px: { xs: 2, sm: 4, md: 6 },
+        transition: 'background-color 0.3s, color 0.3s', // Smooth transition for background and text color
+        bgcolor: '#FFA07A' // Background color: coral
+      }}
     >
-      {/* Add items to inventory management system (prebuild modals just add them at the top, import it so everything compiles) */}
-      <Modal open={open} onClose={handleClose}>
-        {/* This will center the box on screen */}
+      <Box maxWidth="lg" mx="auto">
+        <Typography variant="h2" color="primary" align="center" mb={4}>
+          Inventory Management
+        </Typography>
+        <Typography variant="h5" color="text.secondary" align="center" mb={6}>
+          Keep track of your items with ease
+        </Typography>
+
+        <Stack direction="row" alignItems="center" justifyContent="flex-end" mb={4}>
+          <Typography variant="body1" color="text.secondary" mr={2}>
+            Dark Mode
+          </Typography>
+          <Switch checked={darkMode} onChange={toggleDarkMode} />
+        </Stack>
+
+        {alert && (
+          <Box 
+            mb={4} 
+            p={2} 
+            bgcolor={alert.type === 'error' ? '#f8d7da' : '#d4edda'} // Alert background color: red for error, green for success
+            borderRadius={2}
+            boxShadow={3}
+          >
+            <Typography color={alert.type === 'error' ? '#721c24' : '#155724'}>
+              {alert.message}
+            </Typography>
+          </Box>
+        )}
+
         <Box 
-          position="absolute" 
-          top="50%" 
-          left="50%" 
-          width={400}
-          //transform="translate(-50%, -50%)" this prebuild rop didnt work, so i used sx and directly beeing applied as styules instead of using prebuild props.
-          bgcolor="white"
-          border="2px solid #000"
-          boxShadow={24}
-          p={4}
-          display="flex"
-          flexDirection="column"
-          gap={3}
+          bgcolor={darkMode ? '#1e1e1e' : '#ffffff'} // Inventory section background: dark gray for dark mode, white for light mode
+          borderRadius={4} 
+          boxShadow={3} 
+          overflow="hidden" 
+          mb={4}
+          transition="background-color 0.3s"
+        >
+          <Box p={3} bgcolor="primary.main" display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h4" color="white">
+              Inventory Items
+            </Typography>
+            <Button 
+              variant="contained" 
+              color="secondary"
+              onClick={handleOpen}
+              startIcon={<span>+</span>}
+            >
+              Add New Item
+            </Button>
+          </Box>
+
+          <Box p={3} borderBottom="1px solid" borderColor={darkMode ? '#424242' : '#e0e0e0'} mb={2}>
+            <TextField
+              variant="outlined"
+              fullWidth
+              placeholder="Search items"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
+              InputProps={{
+                style: {
+                  color: darkMode ? '#e0e0e0' : '#333333', // Text color: light for dark mode, dark for light mode
+                  backgroundColor: darkMode ? '#333333' : '#ffffff', // Input background color: dark gray for dark mode, white for light mode
+                  borderColor: darkMode ? '#424242' : '#e0e0e0', // Border color: dark gray for dark mode, light gray for light mode
+                }
+              }}
+            />
+          </Box>
+
+          <Box p={3} maxHeight={400} overflow="auto">
+            {filteredInventory.length === 0 ? (
+              <Typography color="text.secondary" align="center">
+                No items found. Add some!
+              </Typography>
+            ) : (
+              <Stack spacing={2}>
+                {filteredInventory.map(({name, quantity}) => (
+                  <Box 
+                    key={name} 
+                    p={2}
+                    borderRadius={2}
+                    bgcolor={darkMode ? '#333333' : '#f5f5f5'} // Item background color: dark gray for dark mode, light gray for light mode
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    transition="background-color 0.3s"
+                  >
+                    <Box>
+                      <Typography variant="h6">
+                        {name.charAt(0).toUpperCase() + name.slice(1)}
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary">
+                        Quantity: {quantity}
+                      </Typography>
+                    </Box>
+                    <Stack direction="row" spacing={1}>
+                      <Button 
+                        variant="contained"
+                        color="primary"
+                        onClick={() => increaseQuantity(name)}
+                        size="small"
+                        sx={{
+                          borderRadius: 2,
+                          minWidth: 32,
+                          height: 32,
+                          fontSize: 16,
+                          '&:hover': {
+                            backgroundColor: darkMode ? '#1565c0' : '#1976d2', // Button hover color: darker blue for dark mode, lighter blue for light mode
+                          }
+                        }}
+                      >
+                        +
+                      </Button>
+                      <Button 
+                        variant="contained"
+                        color="error"
+                        onClick={() => decreaseQuantity(name)}
+                        size="small"
+                        sx={{
+                          borderRadius: 2,
+                          minWidth: 32,
+                          height: 32,
+                          fontSize: 16,
+                          '&:hover': {
+                            backgroundColor: darkMode ? '#c62828' : '#d32f2f', // Button hover color: darker red for dark mode, lighter red for light mode
+                          }
+                        }}
+                      >
+                        -
+                      </Button>
+                      <Button 
+                        variant="contained"
+                        color="error"
+                        onClick={() => removeItem(name)}
+                        size="small"
+                        sx={{
+                          borderRadius: 2,
+                          minWidth: 32,
+                          height: 32,
+                          fontSize: 16,
+                          '&:hover': {
+                            backgroundColor: darkMode ? '#c62828' : '#d32f2f', // Button hover color: darker red for dark mode, lighter red for light mode
+                          }
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </Stack>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+          </Box>
+        </Box>
+      </Box>
+
+      <Modal open={open} onClose={handleClose}>
+        <Box 
           sx={{
-            transform: "translate(-50%, -50%)"
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 400,
+            bgcolor: darkMode ? '#424242' : '#ffffff', // Modal background color: dark gray for dark mode, white for light mode
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            transition: 'background-color 0.3s',
           }}
         >
-          <Typography variant="h5">Add Item</Typography>
-          {/* stack is like a box but orders eveythong in a stack hence name, direction stacks things horizontallyn space so its not swquished */}
-          <Stack width="100%" direction="row" spacing={2}>
-          {/* set the content of text to the statement we defined above */}
+          <Typography variant="h5" mb={3}>Add Item</Typography>
+          <Stack spacing={2}>
             <TextField
               variant="outlined"
               fullWidth
               value={itemName}
-              onChange={(e) => {
-                setItemName(e.target.value)
+              onChange={(e) => setItemName(e.target.value)}
+              placeholder="Enter item name"
+              InputProps={{
+                style: {
+                  color: darkMode ? '#e0e0e0' : '#333333', // Text color: light for dark mode, dark for light mode
+                  backgroundColor: darkMode ? '#CD5C5C' : '#ffffff' // Background color in modal: red for dark mode, white for light mode
+                }
               }}
             />
-
             <Button
-              variant="outlined"
-              onClick={() => {
-                addItem(itemName)
-                setItemName('')
-                handleClose()
-              }}  
+              variant="contained"
+              onClick={() => addItem(itemName)}
+              fullWidth
             >
               Add
             </Button>
           </Stack>
         </Box> 
       </Modal>
-      <Button 
-        variant="contained" 
-        onClick={() => {
-          handleOpen()
-        }}
-      > 
-        Add New Item
-      </Button>
-      <Box border="1px solid #333">
-        <Box 
-          width="800px" 
-          height="100px" 
-          bgcolor="#ADD8E6" 
-          display="flex"
-          alignItems="center" 
-          justifyContent="center"
-        >
-          <Typography variant="h2" color="#333">
-            Inventory Items
-          </Typography>
-        </Box>
-      
-      <Stack width="800px" height="300px" spacing={2} overflow="auto">
-        {inventory.map(({name, quantity}) => (
-          <Box 
-            key={name} 
-            width="150px" 
-            minHeight="150px"
-            display="flex" 
-            flexDirection="column" // Added this to stack items vertically
-            alignItems="center" 
-            justifyContent="center" 
-            bgcolor="#f0f0f0" 
-            padding="16px" // Changed from padding={5} to padding="16px"
-          >
-            <Typography variant="h3" color="#333" textAlign="center">
-              {name.charAt(0).toUpperCase() + name.slice(1)}
-            </Typography>
-            <Typography variant="h3" color="#333" textAlign="center">
-              {quantity}
-            </Typography>
-            <Button 
-              variant="contained"
-              onClick={() => removeItem(name)}
-            >
-              Remove
-            </Button>
-          </Box>
-        ))}
-      </Stack>
-      </Box>
-    </Box> 
-  )
-
+    </Box>
+  );
 }
