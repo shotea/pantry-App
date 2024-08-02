@@ -4,6 +4,7 @@ import { firestore } from '@/firebase';
 import { Box, Modal, Typography, Button, Stack, TextField, Switch } from '@mui/material';
 import { collection, query, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
+
 export default function Home() {
   const [inventory, setInventory] = useState([]);
   const [open, setOpen] = useState(false);
@@ -12,7 +13,7 @@ export default function Home() {
   const [alert, setAlert] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
 
-  // Function to fetch inventory from Firestore
+  // Fetch inventory from Firestore
   const updateInventory = async () => {
     const snapshot = query(collection(firestore, 'inventory'));
     const docs = await getDocs(snapshot);
@@ -26,7 +27,7 @@ export default function Home() {
     setInventory(inventoryList);
   };
 
-  // Function to add a new item to inventory
+  // Add a new item to inventory
   const addItem = async (item) => {
     if (!item.trim()) {
       setAlert({ type: 'error', message: 'Please enter an item name.' });
@@ -48,7 +49,7 @@ export default function Home() {
     setAlert({ type: 'success', message: `${item} added to inventory.` });
   };
 
-  // Function to remove an item from inventory
+  // Remove an item from inventory
   const removeItem = async (item) => {
     const docRef = doc(collection(firestore, 'inventory'), item);
     const docSnap = await getDoc(docRef);
@@ -66,7 +67,7 @@ export default function Home() {
     setAlert({ type: 'success', message: `${item} removed from inventory.` });
   };
 
-  // Function to increase the quantity of an item
+  // Increase the quantity of an item
   const increaseQuantity = async (item) => {
     const docRef = doc(collection(firestore, 'inventory'), item);
     const docSnap = await getDoc(docRef);
@@ -79,7 +80,7 @@ export default function Home() {
     await updateInventory();
   };
 
-  // Function to decrease the quantity of an item
+  // Decrease the quantity of an item
   const decreaseQuantity = async (item) => {
     const docRef = doc(collection(firestore, 'inventory'), item);
     const docSnap = await getDoc(docRef);
@@ -96,7 +97,7 @@ export default function Home() {
     await updateInventory();
   };
 
-  // Fetch inventory when the component mounts
+  // Fetch inventory when component mounts
   useEffect(() => {
     updateInventory();
   }, []);
@@ -104,11 +105,10 @@ export default function Home() {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  // Handle key press for search functionality
+  // Handle search functionality
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault(); // Prevent default form submission
-      // Perform search or filtering
+      e.preventDefault();
     }
   };
 
@@ -124,12 +124,12 @@ export default function Home() {
     <Box 
       sx={{
         minHeight: '100vh',
-        color: darkMode ? '#e0e0e0' : '#333333', // Text color: light for dark mode, dark for light mode
+        color: darkMode ? '#e0e0e0' : '#333333',
         position: 'relative',
         py: 6,
         px: { xs: 2, sm: 4, md: 6 },
-        transition: 'background-color 0.3s, color 0.3s', // Smooth transition for background and text color
-        bgcolor: '#FFA07A' // Background color: coral
+        transition: 'background-color 0.3s, color 0.3s',
+        bgcolor: darkMode ? '#333333' : '#FFA07A' // Adjust background color based on mode
       }}
     >
       <Box maxWidth="lg" mx="auto">
@@ -151,7 +151,7 @@ export default function Home() {
           <Box 
             mb={4} 
             p={2} 
-            bgcolor={alert.type === 'error' ? '#f8d7da' : '#d4edda'} // Alert background color: red for error, green for success
+            bgcolor={alert.type === 'error' ? '#f8d7da' : '#d4edda'}
             borderRadius={2}
             boxShadow={3}
           >
@@ -162,7 +162,7 @@ export default function Home() {
         )}
 
         <Box 
-          bgcolor={darkMode ? '#1e1e1e' : '#ffffff'} // Inventory section background: dark gray for dark mode, white for light mode
+          bgcolor={darkMode ? '#1e1e1e' : '#ffffff'}
           borderRadius={4} 
           boxShadow={3} 
           overflow="hidden" 
@@ -193,9 +193,9 @@ export default function Home() {
               onKeyPress={handleKeyPress}
               InputProps={{
                 style: {
-                  color: darkMode ? '#e0e0e0' : '#333333', // Text color: light for dark mode, dark for light mode
-                  backgroundColor: darkMode ? '#333333' : '#ffffff', // Input background color: dark gray for dark mode, white for light mode
-                  borderColor: darkMode ? '#424242' : '#e0e0e0', // Border color: dark gray for dark mode, light gray for light mode
+                  color: darkMode ? '#e0e0e0' : '#333333',
+                  backgroundColor: darkMode ? '#333333' : '#ffffff',
+                  borderColor: darkMode ? '#424242' : '#e0e0e0',
                 }
               }}
             />
@@ -213,7 +213,7 @@ export default function Home() {
                     key={name} 
                     p={2}
                     borderRadius={2}
-                    bgcolor={darkMode ? '#333333' : '#f5f5f5'} // Item background color: dark gray for dark mode, light gray for light mode
+                    bgcolor={darkMode ? '#333333' : '#f5f5f5'}
                     display="flex"
                     justifyContent="space-between"
                     alignItems="center"
@@ -239,7 +239,7 @@ export default function Home() {
                           height: 32,
                           fontSize: 16,
                           '&:hover': {
-                            backgroundColor: darkMode ? '#1565c0' : '#1976d2', // Button hover color: darker blue for dark mode, lighter blue for light mode
+                            backgroundColor: darkMode ? '#1565c0' : '#1976d2',
                           }
                         }}
                       >
@@ -256,7 +256,7 @@ export default function Home() {
                           height: 32,
                           fontSize: 16,
                           '&:hover': {
-                            backgroundColor: darkMode ? '#c62828' : '#d32f2f', // Button hover color: darker red for dark mode, lighter red for light mode
+                            backgroundColor: darkMode ? '#c62828' : '#d32f2f',
                           }
                         }}
                       >
@@ -273,7 +273,7 @@ export default function Home() {
                           height: 32,
                           fontSize: 16,
                           '&:hover': {
-                            backgroundColor: darkMode ? '#c62828' : '#d32f2f', // Button hover color: darker red for dark mode, lighter red for light mode
+                            backgroundColor: darkMode ? '#c62828' : '#d32f2f',
                           }
                         }}
                       >
@@ -296,7 +296,7 @@ export default function Home() {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: 400,
-            bgcolor: darkMode ? '#424242' : '#ffffff', // Modal background color: dark gray for dark mode, white for light mode
+            bgcolor: darkMode ? '#424242' : '#ffffff',
             borderRadius: 2,
             boxShadow: 24,
             p: 4,
@@ -313,8 +313,8 @@ export default function Home() {
               placeholder="Enter item name"
               InputProps={{
                 style: {
-                  color: darkMode ? '#e0e0e0' : '#333333', // Text color: light for dark mode, dark for light mode
-                  backgroundColor: darkMode ? '#CD5C5C' : '#ffffff' // Background color in modal: red for dark mode, white for light mode
+                  color: darkMode ? '#e0e0e0' : '#333333',
+                  backgroundColor: darkMode ? '#CD5C5C' : '#ffffff'
                 }
               }}
             />
