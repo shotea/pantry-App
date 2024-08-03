@@ -6,7 +6,7 @@ Features
 
 ## Inventory Management: 
 Add, search, update, and remove items.
-Camera Integration: Capture item images using your PC camera.
+Under Development - Camera Integration: Capture item images using your PC camera.
 Firebase Integration: Store item data and images in Firebase Firestore and Storage.
 Dark Mode: Toggle between light and dark modes for better user experience.
 Real-time Updates: Automatically update the inventory list in real-time.
